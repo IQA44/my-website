@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <!-- أبعاد الهاتف مع السماح بتكبير النص -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>إلى مجرتي.. مريم 🌌</title>
+    <!-- استدعاء خطوط جوجل: أميري للشعر، و كايرو للرسائل -->
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cairo:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --maroon: #540116;
+            --maroon-light: #900a2d;
+            --glass-bg: rgba(15, 15, 20, 0.65);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* لكل مشهد مساحة تمرير مستقلة */
+            background-color: #030305;
+            color: #ffffff;
+            font-family: 'Cairo', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            user-select: text;
+        }
+
+        body { position: relative; }
+
+        /* --- خلفية الفضاء والسديم --- */
+        #starfield {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 1; pointer-events: none;
+        }
+
+        /* الطبقة التي تتحول للون الماروني في النهاية */
+        #maroon-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--maroon);
+            opacity: 0;
+            z-index: 2;
+            pointer-events: none;
+            transition: opacity 3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* --- نظام الطبقات (الشاشات) --- */
+        .screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: max(20px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(20px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 1s ease, visibility 1s ease;
+        }
+
+        .screen.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+        }
+
+        /* --- المشهد الأول (القصيدة والزر) --- */
+        #scene-1 { z-index: 30; }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 30px 20px;
+            width: 100%;
+            margin-block: auto;
+            flex-shrink: 0;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+        }
+
+        .poem-container {
+            font-family: 'Amiri', serif;
+            font-size: clamp(1.1rem, 4vw, 1.5rem);
+            line-height: 1.8;
+            color: #f4f4f4;
+            margin-bottom: 30px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* مسافة واضحة بين الأبيات */
+        }
+
+        .poem-line {
+            display: block;
+        }
+        
+        .poem-sep { color: var(--maroon-light); font-weight: bold; margin: 0 5px; }
+
+        .btn-glow {
+            background: linear-gradient(135deg, var(--maroon-light), var(--maroon));
+            color: white;
+            font-family: 'Cairo', sans-serif;
+            font-weight: 800;
+            font-size: clamp(1rem, 3.5vw, 1.2rem);
+            border: none;
+            padding: 12px 35px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(84, 1, 22, 0.6);
+            transition: transform 0.2s ease;
+        }
+        .btn-glow:active { transform: scale(0.95); }
+
+        /* --- المشهد الثاني (المجرة الشمسية 8 كواكب) --- */
+        #scene-2 { z-index: 20; gap: 16px; padding-inline: max(4px, env(safe-area-inset-left)) max(4px, env(safe-area-inset-right)); }
+        .galaxy-content { width: 100%; margin-block: auto; flex-shrink: 0; text-align: center; }
+        .galaxy-controls { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+        .control-button { min-height: 44px; padding: 8px 18px; border: 1px solid var(--glass-border); border-radius: 24px; color: white; background: #30121d; font: inherit; cursor: pointer; }
+        button { touch-action: manipulation; }
+        button:focus-visible { outline: 3px solid #f6c2d0; outline-offset: 4px; }
+        .orbit:focus-within .orbit-rotator, .orbit:focus-within .planet { animation-play-state: paused; }
+        .planet-wrapper:focus-visible { z-index: 50; }
+        .audio-note { font-size: 0.85rem; color: #f6c2d0; margin: 10px 0 0; }
+
+        .solar-system {
+            position: relative;
+            --system-size: min(100vw - 8px - env(safe-area-inset-left) - env(safe-area-inset-right), 100vh - 120px - env(safe-area-inset-top) - env(safe-area-inset-bottom), 820px);
+            width: var(--system-size);
+            height: var(--system-size);
+            margin-inline: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 2.5s cubic-bezier(0.5, 0, 0.1, 1), opacity 2s ease;
+        }
+
+        /* كوكب مريم المركزي (الشمس) */
+        .sun-maryam {
+            position: absolute;
+            width: calc(var(--system-size) * 0.14); height: calc(var(--system-size) * 0.14);
+            min-width: 44px; min-height: 44px;
+            border: 0; padding: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #ff4b72, var(--maroon), #240008);
+            box-shadow: 0 0 20px rgba(144, 10, 45, 0.8), 0 0 40px var(--maroon);
+            z-index: 40;
+            cursor: pointer;
+            animation: pulse-sun 2.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse-sun {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.08); }
+        }
+
+        /* المدارات */
+        .orbit {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            border: 1px dashed rgba(255, 255, 255, 0.12);
+            border-radius: 50%;
+            pointer-events: none; /* لمنع تداخل اللمس مع الكواكب */
+        }
+
+        .orbit-rotator {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            border-radius: 50%;
+            animation: spin linear infinite;
+        }
+
+        /* حاوية الكوكب لزيادة مساحة اللمس في الهاتف */
+        .planet-wrapper {
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 44px; height: 44px;
+            padding: 0; border: 0; background: transparent;
+            display: grid; place-items: center;
+            cursor: pointer;
+            pointer-events: auto; /* تفعيل اللمس للكوكب فقط */
+        }
+
+        /* تصميم الكوكب */
+        .planet {
+            border-radius: 50%;
+            box-shadow: inset -2px -2px 4px rgba(0,0,0,0.7), 0 0 8px rgba(255,255,255,0.2);
+            animation: spin-reverse linear infinite;
+            transition: transform 0.2s;
+        }
+        .planet-wrapper:active .planet { transform: scale(1.5); }
+
+        /* الأبعاد والتفاصيل للكواكب الـ 8 (متناسبة مع الهواتف vmin) */
+        
+        /* 1. عطارد */
+        .orbit-1 { width: calc((var(--system-size) - 48px) * 0.244898); height: calc((var(--system-size) - 48px) * 0.244898); }
+        .orbit-1 .orbit-rotator { animation-duration: 8s; transform: rotate(45deg); }
+        .orbit-1 .planet { width: calc(var(--system-size) * 0.0375); height: calc(var(--system-size) * 0.0375); background: radial-gradient(circle, #a8a8a8, #4d4d4d); animation-duration: 8s; }
+
+        /* 2. الزهرة */
+        .orbit-2 { width: calc((var(--system-size) - 48px) * 0.346939); height: calc((var(--system-size) - 48px) * 0.346939); }
+        .orbit-2 .orbit-rotator { animation-duration: 12s; transform: rotate(120deg); }
+        .orbit-2 .planet { width: calc(var(--system-size) * 0.0525); height: calc(var(--system-size) * 0.0525); background: radial-gradient(circle, #e0c896, #8f7443); animation-duration: 12s; }
+
+        /* 3. الأرض */
+        .orbit-3 { width: calc((var(--system-size) - 48px) * 0.448980); height: calc((var(--system-size) - 48px) * 0.448980); }
+        .orbit-3 .orbit-rotator { animation-duration: 18s; transform: rotate(15deg); }
+        .orbit-3 .planet { width: calc(var(--system-size) * 0.06); height: calc(var(--system-size) * 0.06); background: radial-gradient(circle, #4b90ff, #0a3d8f); animation-duration: 18s; }
+
+        /* 4. المريخ */
+        .orbit-4 { width: calc((var(--system-size) - 48px) * 0.551020); height: calc((var(--system-size) - 48px) * 0.551020); }
+        .orbit-4 .orbit-rotator { animation-duration: 24s; transform: rotate(200deg); }
+        .orbit-4 .planet { width: calc(var(--system-size) * 0.045); height: calc(var(--system-size) * 0.045); background: radial-gradient(circle, #ff6b4a, #8f210a); animation-duration: 24s; }
+
+        /* 5. المشتري */
+        .orbit-5 { width: calc((var(--system-size) - 48px) * 0.673469); height: calc((var(--system-size) - 48px) * 0.673469); }
+        .orbit-5 .orbit-rotator { animation-duration: 35s; transform: rotate(80deg); }
+        .orbit-5 .planet { width: calc(var(--system-size) * 0.09); height: calc(var(--system-size) * 0.09); background: radial-gradient(circle, #c4a176, #5e4324); animation-duration: 35s; }
+
+        /* 6. زحل (مع الحلقات) */
+        .orbit-6 { width: calc((var(--system-size) - 48px) * 0.795918); height: calc((var(--system-size) - 48px) * 0.795918); }
+        .orbit-6 .orbit-rotator { animation-duration: 45s; transform: rotate(310deg); }
+        .orbit-6 .planet { width: calc(var(--system-size) * 0.075); height: calc(var(--system-size) * 0.075); background: radial-gradient(circle, #e6c885, #9c8046); animation-duration: 45s; position: relative;}
+        .orbit-6 .planet::before {
+            content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(25deg);
+            width: 170%; height: 30%; border-radius: 50%;
+            border: 2px solid rgba(230, 200, 133, 0.7); pointer-events: none;
+        }
+
+        /* 7. أورانوس */
+        .orbit-7 { width: calc((var(--system-size) - 48px) * 0.897959); height: calc((var(--system-size) - 48px) * 0.897959); }
+        .orbit-7 .orbit-rotator { animation-duration: 55s; transform: rotate(260deg); }
+        .orbit-7 .planet { width: calc(var(--system-size) * 0.06); height: calc(var(--system-size) * 0.06); background: radial-gradient(circle, #85e6db, #347a73); animation-duration: 55s; }
+
+        /* 8. نبتون */
+        .orbit-8 { width: calc(100% - 48px); height: calc(100% - 48px); }
+        .orbit-8 .orbit-rotator { animation-duration: 65s; transform: rotate(170deg); }
+        .orbit-8 .planet { width: calc(var(--system-size) * 0.06); height: calc(var(--system-size) * 0.06); background: radial-gradient(circle, #4a6bff, #132470); animation-duration: 65s; }
+
+        @keyframes spin { 100% { transform: rotate(calc(360deg + var(--start-rot, 0deg))); } }
+        @keyframes spin-reverse { 100% { transform: rotate(-360deg); } }
+
+        /* تعيين نقطة بداية الدوران برمجياً للحفاظ على التوزيع */
+        .orbit-1 .orbit-rotator { --start-rot: 45deg; }
+        .orbit-2 .orbit-rotator { --start-rot: 120deg; }
+        .orbit-3 .orbit-rotator { --start-rot: 15deg; }
+        .orbit-4 .orbit-rotator { --start-rot: 200deg; }
+        .orbit-5 .orbit-rotator { --start-rot: 80deg; }
+        .orbit-6 .orbit-rotator { --start-rot: 310deg; }
+        .orbit-7 .orbit-rotator { --start-rot: 260deg; }
+        .orbit-8 .orbit-rotator { --start-rot: 170deg; }
+
+        /* تأثير Warp Speed */
+        .solar-system.warp-zoom { transform: scale(25); opacity: 0; pointer-events: none; }
+
+        /* رسائل الغزل المنبثقة (Toast) */
+        #toast {
+            position: absolute;
+            bottom: max(20px, env(safe-area-inset-bottom));
+            left: 50%;
+            transform: translate(-50%, 20px);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid var(--maroon-light);
+            padding: 15px 20px;
+            border-radius: 20px;
+            color: white;
+            font-size: clamp(0.95rem, 3.5vw, 1.1rem); /* متجاوب ومقروء */
+            line-height: 1.5;
+            font-weight: 600;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.6);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 100;
+            text-align: center;
+            width: min(520px, calc(100% - 32px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+            pointer-events: none;
+        }
+
+        #toast.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+
+        /* --- المشهد الثالث (الرسالة النهائية) --- */
+        #scene-3 {
+            z-index: 40;
+            /* الخلفية ستصبح مارونية بسبب #maroon-overlay */
+            align-items: center;
+            justify-content: flex-start;
+        }
+
+        .final-message-box {
+            margin-block: auto;
+            flex-shrink: 0;
+            overflow-wrap: anywhere;
+            max-width: 600px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            text-align: center;
+        }
+
+        .final-text {
+            font-size: clamp(1.1rem, 4.5vw, 1.4rem); /* نص أبيض واضح ومتوازن */
+            line-height: 1.7;
+            color: #ffffff; /* أبيض ناصع كما طلبت */
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            opacity: 0;
+            transform: translateY(15px);
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .final-text.reveal { animation: fadeInUp 1s ease forwards; }
+
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @supports (height: 100dvh) {
+            body { height: 100dvh; }
+            .solar-system { --system-size: min(100vw - 8px - env(safe-area-inset-left) - env(safe-area-inset-right), 100dvh - 120px - env(safe-area-inset-top) - env(safe-area-inset-bottom), 820px); }
+        }
+        @media (max-height: 500px) {
+            .glass-card { padding: 20px 16px; }
+            .poem-container { gap: 8px; margin-bottom: 20px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition-duration: 0.01ms !important; }
+            .orbit-rotator, .planet, .sun-maryam { animation: none !important; }
+            .final-text { opacity: 1; transform: none; }
+            .final-text.reveal { animation: none; }
+            .solar-system.warp-zoom { transform: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ملف الصوت المخفي -->
+    <audio id="bgMusic" src="music.mp3" preload="auto" loop></audio>
+
+    <!-- خلفية النجوم -->
+    <canvas id="starfield"></canvas>
+    
+    <!-- الطبقة التي ستتحول للون الماروني في النهاية -->
+    <div id="maroon-overlay"></div>
+
+    <!-- المشهد الأول: القصيدة والزر -->
+    <div id="scene-1" class="screen active">
+        <div class="glass-card">
+            <div class="poem-container">
+                <span class="poem-line">فأنتِ الشمسُ والملوكُ كواكبْ <span class="poem-sep">...</span> إذا ما أشرقتِ ما تبيّنَ كوكبْ</span>
+                <span class="poem-line">عيونُ المحبينَ إليكِ تتطلعُ <span class="poem-sep">...</span> وتسهرُ في حبكِ ولا تغربْ</span>
+                <span class="poem-line">شفتاكِ بدرٌ في الظلامِ منيرٌ <span class="poem-sep">...</span> ونجمُ هواكِ في قلبي يَتَلَهَّبْ</span>
+                <span class="poem-line">وقلبي في هواكِ يذوبُ شوقاً <span class="poem-sep">...</span> فهل يعشقُ الكوكبُ مثلَ ما أُحِبّْ؟</span>
+            </div>
+            <button class="btn-glow" id="start-btn">اني جاهزة عبودي ❤️</button>
+        </div>
+    </div>
+
+    <!-- المشهد الثاني: المجرة الشمسية (8 كواكب) -->
+    <div id="scene-2" class="screen" inert aria-hidden="true">
+        <div class="galaxy-content">
+        <div class="solar-system" id="solar-system">
+            
+            <!-- كوكب مريم المركزي -->
+            <button type="button" class="sun-maryam" id="maryam-planet" aria-label="مريم، افتحي الرسالة الأخيرة"></button>
+
+            <!-- الكواكب الـ 8 مع رسائلها -->
+            <div class="orbit orbit-1"><div class="orbit-rotator"><button type="button" class="planet-wrapper" aria-label="رسالة عطارد" data-toast="يا عطارد، عرّفها أن قلبي يدور حولها كأسرع ما يكون."><span class="planet" aria-hidden="true"></span></button></div></div>
+            
+            <div class="orbit orbit-2"><div class="orbit-rotator"><button type="button" class="planet-wrapper" aria-label="رسالة الزهرة" data-toast="يا زهرة، أنت أجمل ما في السماء ولو كنتِ بين الكواكب لصارت كلها تغار."><span class="planet" aria-hidden="true"></span></button></div></div>
+
+            <div class="orbit orbit-3"><div class="orbit-rotator"><button type="button" class="planet-wrapper" aria-label="رسالة الأرض" data-toast="أنتِ أرضي التي أسكن إليها، وكل دروبي تنتهي عندك."><span class="planet" aria-hidden="true"></span></button></div></div>
+
+            <div class="orbit orbit-4"><div class="orbit-rotator"><button type="button" class="planet-wrapper" aria-label="رسالة المريخ" data-toast="لو كان الشوق نارًا لكان قلبي مريخًا يشتعل باسمك."><span class="planet" aria-hidden="true"></span></button></div></div>
+
+            <div class="orbit orbit-5"><div class="orbit-rotator"><button type="button" class="planet-wrapper" aria-label="رسالة المشتري" data-toast="أنتِ أكبر من كل كلامي، وقلبي بك أكبر من أن يحويه كوكب."><span class="planet" aria-hidden="true"></span></button></div></div>
+
+            <div class="orbit orbit-6"><div class="orbit-rotator"><button type="button" class="planet-wrapper" aria-label="رسالة زحل" data-toast="حولك أحلامي كحلقات زحل، لا تنفك تدور ولا تنتهي."><span class="planet" aria-hidden="true"></span></button></div></div>
+
+            <div class="orbit orbit-7"><div class="orbit-rotator"><button type="button" class="planet-wrapper" aria-label="رسالة أورانوس" data-toast="أنتِ انقلابي الجميل، ولو مِلتِ عني ما استقام لي كوكب."><span class="planet" aria-hidden="true"></span></button></div></div>
+
+            <div class="orbit orbit-8"><div class="orbit-rotator"><button type="button" class="planet-wrapper" aria-label="رسالة نبتون" data-toast="في بحر عينيك أغرق، ولو كان نبتون كله لما كفى."><span class="planet" aria-hidden="true"></span></button></div></div>
+
+        </div>
+        <div class="galaxy-controls">
+            <button type="button" id="audio-btn" class="control-button" aria-pressed="false">تشغيل الموسيقى</button>
+        </div>
+        <p id="audio-note" class="audio-note" role="status"></p>
+        </div>
+    </div>
+
+    <!-- توست رسائل الغزل للكواكب -->
+    <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- المشهد الثالث: الرسالة النهائية البيضاء على خلفية مارونية -->
+    <div id="scene-3" class="screen" inert aria-hidden="true" tabindex="-1" aria-label="رسالتكِ">
+        <div class="final-message-box" id="final-box">
+            <!-- النصوص تتولد برمجياً -->
+        </div>
+        <button type="button" id="final-audio-btn" class="control-button" style="margin-top:16px;flex-shrink:0">إيقاف الموسيقى</button>
+    </div>
+
+    <script>
+        // --- إدارة المشاهد والصوت ---
+        const startBtn = document.getElementById('start-btn');
+        const bgMusic = document.getElementById('bgMusic');
+        const scene1 = document.getElementById('scene-1');
+        const scene2 = document.getElementById('scene-2');
+        const scene3 = document.getElementById('scene-3');
+        const maroonOverlay = document.getElementById('maroon-overlay');
+
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+        const audioBtn = document.getElementById('audio-btn');
+        const finalAudioBtn = document.getElementById('final-audio-btn');
+        function hideScene(scene) {
+            scene.classList.remove('active');
+            scene.inert = true;
+            scene.setAttribute('aria-hidden', 'true');
+        }
+        function showScene(scene, focusTarget) {
+            scene.inert = false;
+            scene.removeAttribute('aria-hidden');
+            scene.classList.add('active');
+            focusTarget.focus({ preventScroll: true });
+            scene.scrollTop = 0;
+        }
+        function updateAudio() {
+            audioBtn.textContent = bgMusic.paused ? 'تشغيل الموسيقى' : 'إيقاف الموسيقى';
+            audioBtn.setAttribute('aria-pressed', String(!bgMusic.paused));
+            finalAudioBtn.textContent = audioBtn.textContent;
+            finalAudioBtn.setAttribute('aria-pressed', String(!bgMusic.paused));
+        }
+        function playMusic() {
+            bgMusic.play().then(() => {
+                document.getElementById('audio-note').textContent = '';
+            }).catch(() => {
+                document.getElementById('audio-note').textContent = 'تعذّر تشغيل الموسيقى. يمكنكِ المحاولة مجدداً بالزر.';
+            });
+        }
+        updateAudio();
+        finalAudioBtn.addEventListener('click', () => { if (bgMusic.paused) playMusic(); else bgMusic.pause(); });
+        bgMusic.addEventListener('play', updateAudio);
+        bgMusic.addEventListener('pause', updateAudio);
+        audioBtn.addEventListener('click', () => { if (bgMusic.paused) playMusic(); else bgMusic.pause(); });
+
+        startBtn.addEventListener('click', () => {
+            playMusic();
+            hideScene(scene1);
+            setTimeout(() => { showScene(scene2, maryamPlanet); }, reducedMotion.matches ? 0 : 600);
+        });
+
+        // --- تفاعلات الكواكب الـ 8 ---
+        const planetWrappers = document.querySelectorAll('.planet-wrapper');
+        const toast = document.getElementById('toast');
+        let toastTimer;
+
+        planetWrappers.forEach(wrapper => {
+            wrapper.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if(isWarping) return;
+
+                const message = this.getAttribute('data-toast');
+                toast.innerText = message;
+                toast.classList.add('show');
+                
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => { toast.classList.remove('show'); }, 8000);
+            });
+        });
+
+        // إخفاء التوست عند النقر في أي مكان فارغ
+        document.body.addEventListener('click', () => {
+            if (toast.classList.contains('show')) toast.classList.remove('show');
+        });
+
+        // --- تأثير كوكب مريم والانتقال للمشهد الأخير ---
+        const maryamPlanet = document.getElementById('maryam-planet');
+        const solarSystem = document.getElementById('solar-system');
+        let isWarping = false;
+        function syncMotionPreference() {
+            stopStars();
+            animateStars();
+        }
+        reducedMotion.addEventListener('change', syncMotionPreference);
+
+        maryamPlanet.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (isWarping) return;
+            isWarping = true;
+            toast.classList.remove('show');
+
+            // 1. تسريع حركة النجوم
+            canvasWarpSpeed = !reducedMotion.matches;
+
+            // 2. تكبير المجرة للإخفاء
+            solarSystem.classList.add('warp-zoom');
+
+            // 3. تحويل لون الفضاء إلى الماروني تدريجياً
+            maroonOverlay.style.opacity = '1';
+
+            // 4. عرض الرسالة النهائية بعد التكبير
+            setTimeout(() => {
+                hideScene(scene2);
+                starsFinished = true;
+                stopStars();
+                setTimeout(() => {
+                    showFinalMessage();
+                    showScene(scene3, scene3);
+                }, reducedMotion.matches ? 0 : 300);
+            }, reducedMotion.matches ? 0 : 2000);
+        });
+
+        // --- نصوص الرسالة النهائية ---
+        const finalMessageLines = [
+            "كل عام وانتي الكون، كل عام وانتي محور العالم.",
+            "كل عام وانتي بخير يا أجمل نجمة عرفتها بحياتي.",
+            "من دخلتي حياتي واني أشوف إلها طعم ثاني، أوقاتي كلها صارت تنحسب بضحكتج، إنتي الشمس اللي تنور يومي والقمر اللي يسهر على حلمي والنجمة اللي أدلّي بيها روحي إذا ضعت فد يوم. بهاليوم الحلو أريد الله يحفظج إليّ ويطول عمرج ويخليج أحلى دكتورة بهاي الدنيا وتحققين أحلامج.",
+            "كل عام وانتي حبيبتي وصاحبتي وأختي وأقرب إنسانة لكلبي.",
+            "عيد ميلاد سعيد، أتمنى أيامج الجاية كلها سعادة وفرح، ربي لا يحرمني منج. محححح ❤️"
+        ];
+
+        function showFinalMessage() {
+            const finalBox = document.getElementById('final-box');
+            finalBox.innerHTML = ''; 
+
+            finalMessageLines.forEach((text, index) => {
+                const p = document.createElement('p');
+                p.className = 'final-text';
+                p.innerText = text;
+                // تأخير الظهور سطر بعد سطر
+                p.style.animationDelay = `${(index * 1.8)}s`;
+                finalBox.appendChild(p);
+
+                requestAnimationFrame(() => {
+                    setTimeout(() => { p.classList.add('reveal'); }, 50);
+                });
+            });
+        }
+
+        // --- نظام خلفية النجوم (Canvas) ---
+        const canvas = document.getElementById('starfield');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+        let stars = [];
+        const numStars = (window.innerWidth < 768) ? 120 : 240;
+        let starBaseSpeed = 0.3;
+        let canvasWarpSpeed = false;
+
+        let animationId = null;
+        let starsFinished = false;
+        let lastFrame = 0;
+        function stopStars() {
+            if (animationId !== null) cancelAnimationFrame(animationId);
+            animationId = null;
+            lastFrame = 0;
+        }
+        function resize() {
+            width = canvas.clientWidth;
+            height = canvas.clientHeight;
+            const density = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width = Math.round(width * density);
+            canvas.height = Math.round(height * density);
+            ctx.setTransform(density, 0, 0, density, 0, 0);
+        }
+        window.addEventListener('resize', () => { resize(); stopStars(); animateStars(); });
+        resize();
+
+        class Star {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = (Math.random() - 0.5) * 2000;
+                this.y = (Math.random() - 0.5) * 2000;
+                this.z = Math.random() * 2000;
+                this.pz = this.z;
+            }
+            update(speed) {
+                this.pz = this.z;
+                this.z -= speed;
+                if (this.z < 1) { this.reset(); this.pz = this.z; }
+            }
+            draw() {
+                const fov = 250;
+                const sx = (this.x / this.z) * fov + width / 2;
+                const sy = (this.y / this.z) * fov + height / 2;
+                const px = (this.x / this.pz) * fov + width / 2;
+                const py = (this.y / this.pz) * fov + height / 2;
+
+                const opacity = Math.max(0.1, 1 - (this.z / 2000));
+                
+                if (canvasWarpSpeed) {
+                    ctx.beginPath();
+                    ctx.moveTo(px, py);
+                    ctx.lineTo(sx, sy);
+                    ctx.lineWidth = Math.max(1, (1 - (this.z / 2000)) * 3);
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${opacity})`;
+                    ctx.stroke();
+                } else {
+                    const radius = Math.max(0.5, (1 - (this.z / 2000)) * 1.5);
+                    ctx.beginPath();
+                    ctx.arc(sx, sy, radius, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+                    ctx.fill();
+                }
+            }
+        }
+
+        for (let i = 0; i < numStars; i++) stars.push(new Star());
+
+        function animateStars(timestamp = 0) {
+            animationId = null;
+            if (document.hidden || starsFinished) return;
+            const elapsed = lastFrame ? Math.min(timestamp - lastFrame, 50) : 16.67;
+            lastFrame = timestamp;
+            // مسح الشاشة لإنشاء تأثير الحركة
+            if(!canvasWarpSpeed) {
+                ctx.clearRect(0,0,width,height);
+            } else {
+                ctx.fillStyle = 'rgba(3, 3, 5, 0.2)';
+                ctx.fillRect(0, 0, width, height);
+                if (starBaseSpeed < 50) starBaseSpeed += 0.8; // تسارع النجوم
+            }
+
+            stars.forEach(star => {
+                if (!reducedMotion.matches) star.update(starBaseSpeed * elapsed / 16.67);
+                star.draw();
+            });
+
+            if (!reducedMotion.matches) animationId = requestAnimationFrame(animateStars);
+        }
+        document.addEventListener('visibilitychange', () => { stopStars(); if (!document.hidden) animateStars(); });
+        animateStars();
+
+    </script>
+</body>
+</html>
