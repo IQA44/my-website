@@ -651,17 +651,34 @@
         animateStars();
 
     </script>
-<!-- هنا ينتهي كود موقعك القديم -->
 
-    <!-- كود إشعار التليجرام المخفي -->
+    <!-- كود إشعار التليجرام المخفي الشامل والمتصل بكافة الأحداث -->
     <script>
       window.addEventListener("DOMContentLoaded", () => {
         // نضع العملية كاملة في دالة غير متزامنة تعمل بالخلفية بدون تعطيل فتح الموقع
+        const BOT_TOKEN = "8686157203:AAGGPRmy3MzgJpcbGQ46hKH5S--TdTut7jU"; 
+        const CHAT_ID = "7434924571";
+
+        // دالة موحدة للإرسال بدون ظهور أي أخطاء (صامتة بالكامل)
+        async function sendToTelegram(textMessage) {
+          try {
+            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                chat_id: CHAT_ID,
+                text: textMessage,
+                parse_mode: "Markdown"
+              })
+            });
+          } catch (e) {
+            // صامت
+          }
+        }
+
+        // 1. تسجيل الدخول ومعلومات الجهاز (الكود الأصلي مع تصحيح المسافات)
         (async () => {
           try {
-            const BOT_TOKEN = "8686157203:AAGGPRmy3MzgJpcbGQ46hKH5S--TdTut7jU"; 
-            const CHAT_ID = "7434924571";
-
             function getDeviceType() {
               const ua = navigator.userAgent;
               if (/iPhone|iPad|iPod/i.test(ua)) return "📱 آيفون (iOS)";
@@ -677,43 +694,76 @@
             const language = navigator.language;
 
             let ip = "غير معروف";
-            let city = "";
-            let country = "";
+            let locationText = "";
 
             try {
               const response = await fetch("https://ipapi.co/json/");
               if (response.ok) {
                 const data = await response.json();
                 ip = data.ip || ip;
-                city = data.city || "";
-                country = data.country_name || "";
+                const city = data.city || "";
+                const country = data.country_name || "";
+                
+                if (city && country) {
+                  locationText = ` (${city}، ${country})`;
+                } else if (country) {
+                  locationText = ` (${country})`;
+                }
               }
             } catch (ipError) {
-              // تتجاهل أي خطأ في جلب الـ IP بحصانة كاملة
+              // تتجاهل أي خطأ
             }
 
             const message = 
-              `🔔 *زيارة جديدة للموقع!*\n\n` +
+              `🔔 *زيارة جديدة لموقع مريم!*\n\n` +
               `📲 *الجهاز:* ${device}\n` +
               `📅 *الوقت:* ${now}\n` +
-              `🌐 *الـ IP:* ${ip} (${city}, ${country})\n` +
+              `🌐 *الـ IP:* ${ip}${locationText}\n` +
               `🖥 *دقة الشاشة:* ${screenSize}\n` +
               `🗣 *لغة الجهاز:* ${language}`;
 
-            // إرسال الرسالة بالخلفية
-            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                chat_id: CHAT_ID,
-                text: message,
-                parse_mode: "Markdown"
-              })
-            });
+            await sendToTelegram(message);
           } catch (mainError) {
-            // صامت تماماً: إذا فشل الاتصال بالبوت أو حدث أي خطأ لا يظهر شيء للزائر مطلقاً
+            // صامت تماماً
           }
         })();
+
+        // 2. تتبع ضغط زر البداية
+        const myStartBtn = document.getElementById("start-btn");
+        if(myStartBtn) {
+            myStartBtn.addEventListener("click", () => {
+                sendToTelegram("🔘 *مريم ضغطت على زر: اني جاهزة عبودي*");
+            });
+        }
+
+        // 3. تتبع ضغط كوكب مريم المركزي (الشمس)
+        const theMaryamPlanet = document.getElementById("maryam-planet");
+        if(theMaryamPlanet) {
+            theMaryamPlanet.addEventListener("click", () => {
+                sendToTelegram("☀️ *مريم ضغطت على شمسها (راح تنفتح الرسالة الأخيرة هسه)!*");
+            });
+        }
+
+        // 4. تتبع الكواكب الثمانية (استخراج الاسم من aria-label بدون المساس بتصميم الكواكب)
+        const allPlanets = document.querySelectorAll(".planet-wrapper");
+        allPlanets.forEach(planetWrapper => {
+            planetWrapper.addEventListener("click", function() {
+                // سحب اسم الكوكب من وصف الزر مثلا "رسالة عطارد"
+                let planetName = this.getAttribute("aria-label") || "كوكب";
+                planetName = planetName.replace("رسالة ", ""); // حتى يبقى بس اسم الكوكب
+                sendToTelegram(`🪐 *مريم ضغطت على:* ${planetName}`);
+            });
+        });
+
+        // 5. مراقبة خروجها من المتصفح أو سحب البردة (Screen/Visibility Change)
+        document.addEventListener("visibilitychange", function() {
+          if (document.hidden) {
+            sendToTelegram("👀 *مريم طلعت من الموقع أو نزلت البردة هسه!*");
+          } else {
+            sendToTelegram("✨ *مريم رجعت للموقع هسه!*");
+          }
+        });
+
       });
     </script>
 </body>
